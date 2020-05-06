@@ -92,20 +92,30 @@ mod tests {
 
     #[test]
     fn test_k_means() {
-        let target_means = vec![3, 11, 25, 40];
+        let candidate_target_means =
+            vec![vec![3, 11, 25, 40], vec![2, 3, 11, 32], vec![7, 25, 35, 42],
+                 vec![7, 25, 37, 45], vec![7, 25, 40, 40], vec![7, 24, 25, 40]];
+        let num_target_means = candidate_target_means[0].len();
         let data = vec![2, 3, 4, 10, 11, 12, 24, 25, 26, 35, 40, 45];
         let kmeans =
-            Kmeans::new(target_means.len(), &data, manhattan, mean);
+            Kmeans::new(num_target_means, &data, manhattan, mean);
         let mut sorted_means = kmeans.copy_means();
         sorted_means.sort();
         let unsorted_means = kmeans.copy_means();
         assert_eq!(kmeans.k(), sorted_means.len());
-        assert_eq!(sorted_means.len(), target_means.len());
+        assert_eq!(sorted_means.len(), num_target_means);
+        println!("sorted_means: {:?}", sorted_means);
         for i in 0..sorted_means.len() {
-            assert_eq!(sorted_means[i], target_means[i]);
-            let matching_mean = unsorted_means[kmeans.classification(&target_means[i])];
+            let target = find_best_match(i, sorted_means[i], &candidate_target_means).unwrap();
+            let matching_mean = unsorted_means[kmeans.classification(&target)];
             let sorted_index = sorted_means.binary_search(&matching_mean).unwrap();
             assert_eq!(i, sorted_index);
         }
+    }
+
+    fn find_best_match(i: usize, mean: i32, candidates: &Vec<Vec<i32>>) -> Option<i32> {
+        candidates.iter()
+            .find(|target| mean == target[i])
+            .map(|v| v[i])
     }
 }
