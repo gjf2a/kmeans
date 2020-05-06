@@ -2,12 +2,12 @@ use rand::thread_rng;
 use rand::distributions::{Distribution, Uniform, WeightedIndex};
 
 #[allow(dead_code)] // distance is only used in the test code, for now, as it is used strictly as a parameter during initialization.
-pub struct Kmeans<T, V: Copy + Eq + PartialOrd, D: Fn(&T,&T) -> V> {
+pub struct Kmeans<T, V: Copy + PartialEq + PartialOrd, D: Fn(&T,&T) -> V> {
     means: Vec<T>,
     distance: D
 }
 
-impl <T: Clone + Eq, V: Copy + Eq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> Kmeans<T,V,D> {
+impl <T: Clone + Eq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> Kmeans<T,V,D> {
     pub fn new<M: Fn(&Vec<T>) -> T>(k: usize, data: &[T], distance: D, mean: M) -> Kmeans<T,V,D> {
         Kmeans {means: kmeans_iterate(k, data, &distance, &mean), distance}
     }
@@ -26,7 +26,7 @@ impl <T: Clone + Eq, V: Copy + Eq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> K
     pub fn move_means(self) -> Vec<T> {self.means}
 }
 
-fn initial_plus_plus<T: Clone + Eq, V: Copy + Eq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V>(k: usize, distance: &D, data: &[T]) -> Vec<T> {
+fn initial_plus_plus<T: Clone + Eq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V>(k: usize, distance: &D, data: &[T]) -> Vec<T> {
     let mut result = Vec::new();
     let mut rng = thread_rng();
     let range = Uniform::new(0, data.len());
@@ -42,7 +42,7 @@ fn initial_plus_plus<T: Clone + Eq, V: Copy + Eq + PartialOrd + Into<f64>, D: Fn
     result
 }
 
-fn kmeans_iterate<T: Clone + Eq, V: Copy + Eq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V, M: Fn(&Vec<T>) -> T>(k: usize, data: &[T], distance: &D, mean: &M) -> Vec<T> {
+fn kmeans_iterate<T: Clone + Eq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V, M: Fn(&Vec<T>) -> T>(k: usize, data: &[T], distance: &D, mean: &M) -> Vec<T> {
     let mut result = initial_plus_plus(k, distance, data);
     loop {
         let mut classifications: Vec<Vec<T>> = (0..k).map(|_| Vec::new()).collect();
@@ -66,7 +66,7 @@ fn kmeans_iterate<T: Clone + Eq, V: Copy + Eq + PartialOrd + Into<f64>, D: Fn(&T
     }
 }
 
-fn classify<T: Clone + Eq, V: Copy + Eq + PartialOrd, D: Fn(&T,&T) -> V>(target: &T, means: &Vec<T>, distance: &D) -> usize {
+fn classify<T: Clone + Eq, V: Copy + PartialEq + PartialOrd, D: Fn(&T,&T) -> V>(target: &T, means: &Vec<T>, distance: &D) -> usize {
     let distances: Vec<(V,usize)> = (0..means.len())
         .map(|i| (distance(&target, &means[i]).into(), i))
         .collect();
