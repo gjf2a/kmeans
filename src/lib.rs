@@ -8,7 +8,7 @@ pub struct Kmeans<T, V: Copy + PartialEq + PartialOrd, D: Fn(&T,&T) -> V> {
 }
 
 impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> Kmeans<T,V,D> {
-    pub fn new<M: Fn(&Vec<T>) -> T>(k: usize, data: &[T], distance: D, mean: M) -> Kmeans<T,V,D> {
+    pub fn new<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: D, mean: M) -> Kmeans<T,V,D> {
         Kmeans {means: kmeans_iterate(k, data, &distance, &mean), distance}
     }
 
@@ -26,7 +26,8 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
     pub fn move_means(self) -> Vec<T> {self.means}
 }
 
-fn initial_plus_plus<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V>(k: usize, distance: &D, data: &[T]) -> Vec<T> {
+fn initial_plus_plus<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V>
+(k: usize, distance: &D, data: &[T]) -> Vec<T> {
     let mut result = Vec::new();
     let mut rng = thread_rng();
     let range = Uniform::new(0, data.len());
@@ -42,13 +43,14 @@ fn initial_plus_plus<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + In
     result
 }
 
-fn kmeans_iterate<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V, M: Fn(&Vec<T>) -> T>(k: usize, data: &[T], distance: &D, mean: &M) -> Vec<T> {
+fn kmeans_iterate<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V, M: Fn(&Vec<&T>) -> T>
+(k: usize, data: &[T], distance: &D, mean: &M) -> Vec<T> {
     let mut result = initial_plus_plus(k, distance, data);
     loop {
-        let mut classifications: Vec<Vec<T>> = (0..k).map(|_| Vec::new()).collect();
+        let mut classifications: Vec<Vec<&T>> = (0..k).map(|_| Vec::new()).collect();
         for datum in data {
             let category = classify(datum, &result, distance);
-            classifications[category].push(datum.clone());
+            classifications[category].push(datum);
         }
         let prev = result;
         result = (0..k)
@@ -85,8 +87,8 @@ mod tests {
         diff
     }
 
-    fn mean(nums: &Vec<i32>) -> i32 {
-        let total: i32 = nums.iter().sum();
+    fn mean(nums: &Vec<&i32>) -> i32 {
+        let total: i32 = nums.iter().map(|i| *i).sum();
         total / (nums.len() as i32)
     }
 
