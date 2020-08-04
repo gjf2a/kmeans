@@ -26,7 +26,7 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
     pub fn move_means(self) -> Vec<T> {self.means}
 }
 
-fn initial_plus_plus<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V>
+pub fn initial_plus_plus<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V>
 (k: usize, distance: &D, data: &[T]) -> Vec<T> {
     let mut result = Vec::new();
     let mut rng = thread_rng();
