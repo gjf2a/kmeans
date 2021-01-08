@@ -53,16 +53,16 @@ fn kmeans_iterate<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<
             classifications[category].push(datum);
         }
         let prev = result;
-        result = (0..k)
-            .map(|i|
-                if !classifications[i].is_empty() {
-                    mean(&classifications[i])
-                } else {
+        result = classifications.iter().enumerate()
+            .map(|(i, c)|
+                if c.is_empty() {
                     prev[i].clone()
-                })
-            .collect();
+                } else {
+                    mean(c)
+                }
+            ).collect();
 
-        if (0..result.len()).all(|i| prev[i] == result[i]) {
+        if result.iter().enumerate().all(|(i,r)| &prev[i] == r) {
             return result;
         }
     }
