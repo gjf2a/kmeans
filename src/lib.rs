@@ -1,4 +1,4 @@
-use rand::thread_rng;
+use rand::{thread_rng, Rng};
 use rand::distributions::{Distribution, Uniform, WeightedIndex};
 
 #[allow(dead_code)] // distance is only used in the test code, for now, as it is used strictly as a parameter during initialization.
@@ -29,18 +29,26 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
 pub fn initial_plus_plus<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V>
 (k: usize, distance: &D, data: &[T]) -> Vec<T> {
     let mut result = Vec::new();
-    let mut rng = thread_rng();
-    let range = Uniform::new(0, data.len());
-    result.push(data[range.sample(&mut rng)].clone());
+    let mut candidates: Vec<T> = data.iter().map(|t| t.clone()).collect();
+    let range = Uniform::new(0, candidates.len());
+    result.push(remove_random(&mut candidates, range));
     while result.len() < k {
-        let squared_distances: Vec<f64> = data.iter()
+        let squared_distances: Vec<f64> = candidates.iter()
             .map(|datum| 1.0f64 + distance(datum, result.last().unwrap()).into())
             .map(|dist| dist.powf(2.0))
             .collect();
         let dist = WeightedIndex::new(&squared_distances).unwrap();
-        result.push(data[dist.sample(&mut rng)].clone());
+        result.push(remove_random(&mut candidates, dist));
     }
     result
+}
+
+pub fn remove_random<T: Clone, D: Distribution<usize>>(candidates: &mut Vec<T>, distribution: D) -> T {
+    let mut rng = thread_rng();
+    let end = candidates.len() - 1;
+    let choice = distribution.sample(&mut rng);
+    candidates.swap(end, choice);
+    candidates.remove(end)
 }
 
 fn kmeans_iterate<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V, M: Fn(&Vec<&T>) -> T>
