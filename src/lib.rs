@@ -1,4 +1,4 @@
-use rand::{thread_rng, Rng};
+use rand::thread_rng;
 use rand::distributions::{Distribution, Uniform, WeightedIndex};
 
 #[allow(dead_code)] // distance is only used in the test code, for now, as it is used strictly as a parameter during initialization.
@@ -110,20 +110,6 @@ mod tests {
         sorted_means.sort();
         assert_eq!(kmeans.k(), sorted_means.len());
         assert_eq!(sorted_means.len(), num_target_means);
-        assert_eq!(sorted_means, target_means);/*
-        let unsorted_means = kmeans.copy_means();
-        println!("sorted_means: {:?}", sorted_means);
-        for i in 0..sorted_means.len() {
-            let target = find_best_match(i, sorted_means[i], &candidate_target_means).unwrap();
-            let matching_mean = unsorted_means[kmeans.classification(&target)];
-            let sorted_index = sorted_means.binary_search(&matching_mean).unwrap();
-            assert_eq!(i, sorted_index);
-        }*/
-    }
-
-    fn find_best_match(i: usize, mean: i32, candidates: &Vec<Vec<i32>>) -> Option<i32> {
-        candidates.iter()
-            .find(|target| mean == target[i])
-            .map(|v| v[i])
+        assert_eq!(sorted_means, target_means);
     }
 }
