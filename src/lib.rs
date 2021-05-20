@@ -31,6 +31,10 @@ pub fn initial_plus_plus<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd 
     let mut result = Vec::new();
     let mut candidates: Vec<T> = data.iter().map(|t| t.clone()).collect();
     let range = Uniform::new(0, candidates.len());
+    let mut rng = thread_rng();
+    while candidates.len() < k {
+        candidates.push(data[range.sample(&mut rng)].clone());
+    }
     result.push(remove_random(&mut candidates, range));
     while result.len() < k {
         let squared_distances: Vec<f64> = candidates.iter()
@@ -111,5 +115,16 @@ mod tests {
         assert_eq!(kmeans.k(), sorted_means.len());
         assert_eq!(sorted_means.len(), num_target_means);
         assert_eq!(sorted_means, target_means);
+    }
+
+    #[test]
+    fn test_underflow() {
+        let data = vec![1, 2, 3];
+        let k = data.len() + 1;
+        let kmeans = Kmeans::new(k, &data, manhattan, mean);
+        assert_eq!(kmeans.means.len(), k);
+        for datum in data.iter() {
+            assert!(kmeans.means.contains(datum));
+        }
     }
 }
