@@ -1,8 +1,8 @@
 [package]
 name = "kmeans"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["gjf2a <ferrer@hendrix.edu>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-rand = "0.7"
+rand = "0.8"
