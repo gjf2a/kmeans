@@ -19,8 +19,8 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
         Self::classify(sample, &self.means, &self.distance)
     }
 
-    pub fn mean(&self, classification: usize) -> T {
-        self.means[classification].clone()
+    pub fn best_matching_mean(&self, sample: &T) -> T {
+        self.means[self.classification(sample)].clone()
     }
 
     #[cfg(test)]
