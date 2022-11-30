@@ -1,7 +1,6 @@
 use rand::thread_rng;
 use rand::distributions::{Distribution, Uniform, WeightedIndex};
 
-#[allow(dead_code)] // distance is only used in the test code, for now, as it is used strictly as a parameter during initialization.
 pub struct Kmeans<T, V: Copy + PartialEq + PartialOrd, D: Fn(&T,&T) -> V> {
     means: Vec<T>,
     distance: D
@@ -12,7 +11,6 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
         Kmeans {means: Self::kmeans_iterate(k, data, &distance, &mean), distance}
     }
 
-    #[cfg(test)]
     pub fn k(&self) -> usize {self.means.len()}
 
     pub fn classification(&self, sample: &T) -> usize {
@@ -23,7 +21,6 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
         self.means[self.classification(sample)].clone()
     }
 
-    #[cfg(test)]
     pub fn copy_means(&self) -> Vec<T> {self.means.clone()}
 
     pub fn move_means(self) -> Vec<T> {self.means}
@@ -92,6 +89,8 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
     use super::*;
 
     fn manhattan(n1: &i32, n2: &i32) -> i32 {
@@ -126,6 +125,28 @@ mod tests {
         assert_eq!(kmeans.means.len(), k);
         for datum in data.iter() {
             assert!(kmeans.means.contains(datum));
+        }
+    }
+
+    #[test]
+    fn test_mutex() {
+        let shared = Arc::new(Mutex::new(None));
+        {
+            let shared = shared.clone();
+            std::thread::spawn(move || {
+                let values = (0..10).collect::<Vec<_>>();
+                let kmeans = Kmeans::new(2, &values, manhattan, mean);
+                let mut shared = shared.lock().unwrap();
+                *shared = Some(kmeans);
+            });
+        }
+        let mut quit = false;
+        while !quit {
+            let shared = shared.lock().unwrap();
+            shared.as_ref().map(|shared| {
+                println!("Completed; means: {:?}", shared.copy_means());
+                quit = true;
+            });
         }
     }
 }
