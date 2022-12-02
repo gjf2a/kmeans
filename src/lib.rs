@@ -9,8 +9,8 @@ pub struct Kmeans<T, V: Copy + PartialEq + PartialOrd, D: Fn(&T,&T) -> V> {
 }
 
 impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> Kmeans<T,V,D> {
-    pub fn new<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: Arc<D>, mean: M) -> Kmeans<T,V,D> {
-        Kmeans {means: Self::kmeans_iterate(k, data, &distance, &mean), distance}
+    pub fn new<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: Arc<D>, mean: Arc<M>) -> Kmeans<T,V,D> {
+        Kmeans {means: Self::kmeans_iterate(k, data, &distance, mean), distance}
     }
 
     pub fn k(&self) -> usize {self.means.len()}
@@ -55,7 +55,7 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
         candidates.remove(end)
     }
 
-    fn kmeans_iterate<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: &D, mean: &M) -> Vec<T> {
+    fn kmeans_iterate<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: &D, mean: Arc<M>) -> Vec<T> {
         let mut result = Self::initial_plus_plus(k, distance, data);
         loop {
             let mut classifications: Vec<Vec<&T>> = (0..k).map(|_| Vec::new()).collect();
@@ -111,7 +111,7 @@ mod tests {
         let target_means = vec![3, 11, 25, 40];
         let num_target_means = target_means.len();
         let data = vec![2, 3, 4, 10, 11, 12, 24, 25, 26, 35, 40, 45];
-        let kmeans = Kmeans::new(num_target_means, &data, Arc::new(manhattan), mean);
+        let kmeans = Kmeans::new(num_target_means, &data, Arc::new(manhattan), Arc::new(mean));
         let mut sorted_means = kmeans.copy_means();
         sorted_means.sort();
         assert_eq!(kmeans.k(), sorted_means.len());
@@ -123,7 +123,7 @@ mod tests {
     fn test_underflow() {
         let data = vec![1, 2, 3];
         let k = data.len() + 1;
-        let kmeans = Kmeans::new(k, &data, Arc::new(manhattan), mean);
+        let kmeans = Kmeans::new(k, &data, Arc::new(manhattan), Arc::new(mean));
         assert_eq!(kmeans.means.len(), k);
         for datum in data.iter() {
             assert!(kmeans.means.contains(datum));
@@ -137,7 +137,7 @@ mod tests {
             let shared = shared.clone();
             std::thread::spawn(move || {
                 let values = (0..10).collect::<Vec<_>>();
-                let kmeans = Kmeans::new(2, &values, Arc::new(manhattan), mean);
+                let kmeans = Kmeans::new(2, &values, Arc::new(manhattan), Arc::new(mean));
                 let mut shared = shared.lock().unwrap();
                 *shared = Some(kmeans);
             });
@@ -168,11 +168,11 @@ mod color_tests {
 
         let start = Instant::now();
         let image = (0..WIDTH*HEIGHT*4).map(|_| RGBColor {r: rand::random(), g: rand::random(), b: rand::random()}).collect::<Vec<_>>();
-        let kmeans = Kmeans::new(NUM_COLOR_CLUSTERS, &image, Arc::new(RGBColor::distance), |items| {
+        let kmeans = Kmeans::new(NUM_COLOR_CLUSTERS, &image, Arc::new(RGBColor::distance), Arc::new(|items: &Vec<&RGBColor>| {
             let item = *items[0];
             let others = items[1..].iter().copied().copied().collect::<Vec<_>>();
             item.average(others).into()
-        });
+        }));
         assert_eq!(kmeans.k(), NUM_COLOR_CLUSTERS);
         println!("elapsed time: {}s", start.elapsed().as_secs_f64());
     }
