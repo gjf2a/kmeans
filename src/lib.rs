@@ -15,6 +15,10 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
 
     pub fn k(&self) -> usize {self.means.len()}
 
+    pub fn distance(&self) -> Arc<D> {
+        self.distance.clone()
+    }
+
     pub fn classification(&self, sample: &T) -> usize {
         Self::classify(sample, &self.means, &self.distance)
     }
