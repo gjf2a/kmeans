@@ -1,13 +1,15 @@
 use rand::thread_rng;
 use rand::distributions::{Distribution, Uniform, WeightedIndex};
+use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct Kmeans<T, V: Copy + PartialEq + PartialOrd, D: Fn(&T,&T) -> V> {
     means: Vec<T>,
-    distance: D
+    distance: Arc<D>
 }
 
 impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> Kmeans<T,V,D> {
-    pub fn new<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: D, mean: M) -> Kmeans<T,V,D> {
+    pub fn new<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: Arc<D>, mean: M) -> Kmeans<T,V,D> {
         Kmeans {means: Self::kmeans_iterate(k, data, &distance, &mean), distance}
     }
 
@@ -109,7 +111,7 @@ mod tests {
         let target_means = vec![3, 11, 25, 40];
         let num_target_means = target_means.len();
         let data = vec![2, 3, 4, 10, 11, 12, 24, 25, 26, 35, 40, 45];
-        let kmeans = Kmeans::new(num_target_means, &data, manhattan, mean);
+        let kmeans = Kmeans::new(num_target_means, &data, Arc::new(manhattan), mean);
         let mut sorted_means = kmeans.copy_means();
         sorted_means.sort();
         assert_eq!(kmeans.k(), sorted_means.len());
@@ -121,7 +123,7 @@ mod tests {
     fn test_underflow() {
         let data = vec![1, 2, 3];
         let k = data.len() + 1;
-        let kmeans = Kmeans::new(k, &data, manhattan, mean);
+        let kmeans = Kmeans::new(k, &data, Arc::new(manhattan), mean);
         assert_eq!(kmeans.means.len(), k);
         for datum in data.iter() {
             assert!(kmeans.means.contains(datum));
@@ -135,7 +137,7 @@ mod tests {
             let shared = shared.clone();
             std::thread::spawn(move || {
                 let values = (0..10).collect::<Vec<_>>();
-                let kmeans = Kmeans::new(2, &values, manhattan, mean);
+                let kmeans = Kmeans::new(2, &values, Arc::new(manhattan), mean);
                 let mut shared = shared.lock().unwrap();
                 *shared = Some(kmeans);
             });
@@ -148,5 +150,30 @@ mod tests {
                 quit = true;
             });
         }
+    }
+}
+
+#[cfg(test)]
+mod color_tests {
+    use std::time::Instant;
+
+    use super::*;
+    use scarlet::prelude::{Color, RGBColor, ColorPoint};
+
+    #[test]
+    fn test_colors() {
+        const WIDTH: usize = 64;
+        const HEIGHT: usize = 48;
+        const NUM_COLOR_CLUSTERS: usize = 2;
+
+        let start = Instant::now();
+        let image = (0..WIDTH*HEIGHT*4).map(|_| RGBColor {r: rand::random(), g: rand::random(), b: rand::random()}).collect::<Vec<_>>();
+        let kmeans = Kmeans::new(NUM_COLOR_CLUSTERS, &image, Arc::new(RGBColor::distance), |items| {
+            let item = *items[0];
+            let others = items[1..].iter().copied().copied().collect::<Vec<_>>();
+            item.average(others).into()
+        });
+        assert_eq!(kmeans.k(), NUM_COLOR_CLUSTERS);
+        println!("elapsed time: {}s", start.elapsed().as_secs_f64());
     }
 }
