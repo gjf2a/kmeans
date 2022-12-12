@@ -2,10 +2,15 @@ use rand::thread_rng;
 use rand::distributions::{Distribution, Uniform, WeightedIndex};
 use std::sync::Arc;
 
-#[derive(Clone)]
 pub struct Kmeans<T: Clone, V: Copy + Clone + PartialEq + PartialOrd, D: Fn(&T,&T) -> V> {
     means: Vec<T>,
     distance: Arc<D>
+}
+
+impl<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> Clone for Kmeans<T, V, D> {
+    fn clone(&self) -> Self {
+        Self { means: self.means.clone(), distance: self.distance.clone() }
+    }
 }
 
 impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> Kmeans<T,V,D> {
@@ -121,6 +126,8 @@ mod tests {
         assert_eq!(kmeans.k(), sorted_means.len());
         assert_eq!(sorted_means.len(), num_target_means);
         assert_eq!(sorted_means, target_means);
+        let cloned = kmeans.clone();
+        assert_eq!(cloned.means, kmeans.means);
     }
 
     #[test]
