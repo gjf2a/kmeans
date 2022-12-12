@@ -3,7 +3,7 @@ use rand::distributions::{Distribution, Uniform, WeightedIndex};
 use std::sync::Arc;
 
 #[derive(Clone)]
-pub struct Kmeans<T, V: Copy + PartialEq + PartialOrd, D: Fn(&T,&T) -> V> {
+pub struct Kmeans<T: Clone, V: Copy + Clone + PartialEq + PartialOrd, D: Fn(&T,&T) -> V> {
     means: Vec<T>,
     distance: Arc<D>
 }
