@@ -2,30 +2,30 @@ use rand::thread_rng;
 use rand::distributions::{Distribution, Uniform, WeightedIndex};
 use std::sync::Arc;
 
-pub struct Kmeans<T: Clone, V: Copy + Clone + PartialEq + PartialOrd, D: Fn(&T,&T) -> V> {
+pub struct Kmeans<T: Clone, V: Copy + Clone + PartialEq + PartialOrd> {
     means: Vec<T>,
-    distance: Arc<D>
+    distance: Arc<fn(&T,&T) -> V>
 }
 
-impl<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> Clone for Kmeans<T, V, D> {
+impl<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>> Clone for Kmeans<T, V> {
     fn clone(&self) -> Self {
         Self { means: self.means.clone(), distance: self.distance.clone() }
     }
 }
 
-impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(&T,&T) -> V> Kmeans<T,V,D> {
-    pub fn new<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: Arc<D>, mean: Arc<M>) -> Kmeans<T,V,D> {
-        Kmeans {means: Self::kmeans_iterate(k, data, &distance, mean), distance}
+impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>> Kmeans<T,V> {
+    pub fn new<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: Arc<fn(&T,&T) -> V>, mean: Arc<M>) -> Kmeans<T,V> {
+        Kmeans {means: Self::kmeans_iterate(k, data, distance.clone(), mean), distance}
     }
 
     pub fn k(&self) -> usize {self.means.len()}
 
-    pub fn distance(&self) -> Arc<D> {
+    pub fn distance(&self) -> Arc<fn(&T,&T)->V> {
         self.distance.clone()
     }
 
     pub fn classification(&self, sample: &T) -> usize {
-        Self::classify(sample, &self.means, &self.distance)
+        Self::classify(sample, &self.means, self.distance.clone())
     }
 
     pub fn best_matching_mean(&self, sample: &T) -> T {
@@ -36,7 +36,7 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
 
     pub fn move_means(self) -> Vec<T> {self.means}
 
-    pub fn initial_plus_plus(k: usize, distance: &D, data: &[T]) -> Vec<T> {
+    pub fn initial_plus_plus(k: usize, distance: Arc<fn(&T,&T) -> V>, data: &[T]) -> Vec<T> {
         let mut result = Vec::new();
         let mut candidates: Vec<T> = data.iter().map(|t| t.clone()).collect();
         let range = Uniform::new(0, candidates.len());
@@ -64,12 +64,12 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
         candidates.remove(end)
     }
 
-    fn kmeans_iterate<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: &D, mean: Arc<M>) -> Vec<T> {
-        let mut result = Self::initial_plus_plus(k, distance, data);
+    fn kmeans_iterate<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: Arc<fn(&T,&T)->V>, mean: Arc<M>) -> Vec<T> {
+        let mut result = Self::initial_plus_plus(k, distance.clone(), data);
         loop {
             let mut classifications: Vec<Vec<&T>> = (0..k).map(|_| Vec::new()).collect();
             for datum in data {
-                let category = Self::classify(datum, &result, distance);
+                let category = Self::classify(datum, &result, distance.clone());
                 classifications[category].push(datum);
             }
             let prev = result;
@@ -88,7 +88,7 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>, D: Fn(
         }
     }
 
-    fn classify(target: &T, means: &Vec<T>, distance: &D) -> usize {
+    fn classify(target: &T, means: &Vec<T>, distance: Arc<fn(&T,&T) -> V>) -> usize {
         let distances: Vec<(V,usize)> = (0..means.len())
             .map(|i| (V::from(distance(&target, &means[i])), i))
             .collect();
