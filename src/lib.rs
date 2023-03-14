@@ -14,7 +14,7 @@ impl<T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>> Clone f
 }
 
 impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>> Kmeans<T,V> {
-    pub fn new<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: Arc<fn(&T,&T) -> V>, mean: Arc<M>) -> Kmeans<T,V> {
+    pub fn new(k: usize, data: &[T], distance: Arc<fn(&T,&T) -> V>, mean: Arc<fn(&Vec<&T>) -> T>) -> Kmeans<T,V> {
         Kmeans {means: Self::kmeans_iterate(k, data, distance.clone(), mean), distance}
     }
 
@@ -64,7 +64,7 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>> Kmeans
         candidates.remove(end)
     }
 
-    fn kmeans_iterate<M: Fn(&Vec<&T>) -> T>(k: usize, data: &[T], distance: Arc<fn(&T,&T)->V>, mean: Arc<M>) -> Vec<T> {
+    fn kmeans_iterate(k: usize, data: &[T], distance: Arc<fn(&T,&T)->V>, mean: Arc<fn(&Vec<&T>) -> T>) -> Vec<T> {
         let mut result = Self::initial_plus_plus(k, distance.clone(), data);
         loop {
             let mut classifications: Vec<Vec<&T>> = (0..k).map(|_| Vec::new()).collect();
