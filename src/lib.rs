@@ -29,15 +29,7 @@ impl <T: Clone + PartialEq, V: Copy + PartialEq + PartialOrd + Into<f64>> Kmeans
     }
 
     pub fn best_matching_mean(&self, sample: &T) -> T {
-        let classification = self.classification(sample);
-        if classification < self.means.len() {
-            self.means[classification].clone()
-        } else {
-            // Handle this differently at some point.
-            self.means[0].clone()
-        }
-        // Original
-        // self.means[self.classification(sample)].clone()
+        self.means[self.classification(sample)].clone()
     }
 
     pub fn copy_means(&self) -> Vec<T> {self.means.clone()}
